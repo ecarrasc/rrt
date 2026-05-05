@@ -60,4 +60,8 @@ private:
 
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr m_path_pub;
     //rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr m_path_pub;
+    
+    bool has_start_ = false;
+    bool has_goal_ = false;
+
 };

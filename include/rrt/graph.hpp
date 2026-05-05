@@ -24,7 +24,15 @@ public:
     Point_t& operator[](Index_t idx)            { return m_vertices[idx]; }
     const Point_t& operator[](Index_t idx) const { return m_vertices[idx]; }
 
+    size_t size();
+
 private:
     std::vector<Point_t> m_vertices;
     EdgeSet_t m_edges;
 };
+
+inline
+size_t Graph::size()
+{
+    return m_vertices.size();
+}

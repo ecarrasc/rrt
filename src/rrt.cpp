@@ -1,4 +1,6 @@
 #include <visualization_msgs/msg/marker.hpp>
+#include <rclcpp/rclcpp.hpp>
+
 
 #include <rrt/rrt.hpp>
 #include <rrt/graph.hpp>
@@ -14,7 +16,7 @@ RRT::RRT(rclcpp::Node::SharedPtr node)
     // Declare parameters (ROS 2 requires this)
     node_->declare_parameter("map_topic", "/map");
     node_->declare_parameter("initial_pose_topic", "/initialpose");
-    node_->declare_parameter("goal_pose_topic", "/move_base_simple/goal");
+    node_->declare_parameter("goal_pose_topic", "/goal_pose");
 
     node_->declare_parameter("iteration_count", 10000);
     node_->declare_parameter("expansion_distance", 0.5);
@@ -103,6 +105,12 @@ void RRT::compute_path()
         // distance away.
         auto q_new = extend_towards(q_near, q_rand);
 
+        if ((q_new - q_near).norm() < 0.01)
+        {
+            RCLCPP_WARN(node_->get_logger(), "Expansion blocked");
+            continue;
+        }
+
         // Ignore invalid expansions
         if ((q_new - q_near).norm() < 0.01)
             continue;
@@ -126,6 +134,8 @@ void RRT::compute_path()
 
         msg.points.push_back(p1);
         msg.points.push_back(p2);
+
+        RCLCPP_INFO(node_->get_logger(), "Iteration %d: nodes = %zu", i, g.size());
     }
 
     m_path_pub->publish(msg);
@@ -242,7 +252,10 @@ void RRT::start_pose_cb(
         extract_yaw(msg->pose.pose.orientation)
     );
 
-    compute_path();
+    has_start_ = true;
+
+    if (has_goal_)
+        compute_path();
 }
 
 void RRT::goal_pose_cb(
@@ -254,5 +267,8 @@ void RRT::goal_pose_cb(
         extract_yaw(msg->pose.orientation)
     );
 
-    compute_path();
+    has_goal_ = true;
+
+    if (has_start_)
+        compute_path();
 }
