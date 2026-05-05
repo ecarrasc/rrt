@@ -1,15 +1,101 @@
 cmake_minimum_required(VERSION 3.8)
 project(rrt)
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+# Default to C++14 (ROS 2 standard)
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
 endif()
 
-# find dependencies
+#if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+#  add_compile_options(-Wall -Wextra -Wpedantic)
+#endif()
+
+# Find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(Eigen3 REQUIRED)
+
+# Include directories
+include_directories(
+  include
+  ${EIGEN3_INCLUDE_DIRS}
+)
+
+add_definitions(${EIGEN_DEFINITIONS})
+
+#################################################
+# Library
+#################################################
+
+add_library(rrt
+  src/graph.cpp
+  src/rrt.cpp
+  src/utils.cpp
+  src/distance_grid_map.cpp
+)
+
+ament_target_dependencies(rrt
+  rclcpp
+  geometry_msgs
+  nav_msgs
+  tf2
+  tf2_ros
+  visualization_msgs
+)
+
+#################################################
+# Executable: rrt_node
+#################################################
+
+add_executable(rrt_node
+  src/rrt_node.cpp
+)
+
+target_link_libraries(rrt_node
+  rrt
+)
+
+ament_target_dependencies(rrt_node
+  rclcpp
+  geometry_msgs
+  nav_msgs
+  tf2
+  tf2_ros
+  visualization_msgs
+)
+
+#################################################
+# Executable: test_graph
+#################################################
+
+# add_executable(test_graph
+#   #src/test_graph.cpp
+#   src/graph.cpp
+# )
+
+# target_link_libraries(test_graph
+#   rrt
+# )
+
+#################################################
+# Install
+#################################################
+
+install(TARGETS
+  rrt
+  rrt_node
+  #test_graph
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY include/
+  DESTINATION include/
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
