@@ -114,7 +114,7 @@ Eigen::Vector2f DistanceGridMap::world_dimensions() const
 
 Eigen::Vector2f DistanceGridMap::random_free_coordinate() const
 {
-    std::cout << "free cells: " << m_free_cells.size() << std::endl;
+    //std::cout << "free cells: " << m_free_cells.size() << std::endl;
     size_t index = m_free_cells.size() * uniform_zero_one();
     return cell_to_world(m_free_cells[index]);
 }

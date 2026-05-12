@@ -33,7 +33,7 @@ void Graph::add_edge(Index_t vertex_a, Index_t vertex_b)
 
     // Insert the edge if it doesn't exist already
     // auto edges = m_edges[vertex_a];
-    // ⚠️ FIX: reference, not copy
+    // Note: reference, not copy
     auto& edges = m_edges[vertex_a];
 
     if (edges.find(vertex_b) == edges.end())

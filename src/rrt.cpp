@@ -57,16 +57,18 @@ RRT::RRT(rclcpp::Node::SharedPtr node)
 
     // Publisher
     m_path_pub = node_->create_publisher<visualization_msgs::msg::Marker>("rrt_path", 10);
+    //m_path_start_stop = node_->create_publisher<visualization_msgs::msg::Marker>("rrt_start_stop", 10);
 
     RCLCPP_INFO(node_->get_logger(), "RRT initialized successfully");
 }
 
 void RRT::compute_path()
 {
+    rclcpp::Rate rate(5);
+
     visualization_msgs::msg::Marker msg;
 
     msg.header.frame_id = "map";
-    msg.header.stamp = node_->get_clock()->now();
     msg.ns = "rrt";
     msg.action = visualization_msgs::msg::Marker::ADD;
 
@@ -89,7 +91,7 @@ void RRT::compute_path()
     for (int i = 0; i < m_params.iteration_count; ++i)
     {
         if (has_solution){
-            //RCLCPP_INFO(node_->get_logger(), "Solution found after " << i << " steps.");
+            RCLCPP_INFO(node_->get_logger(), "Solution found after %d steps.", i);
             break;
         }
 
@@ -136,9 +138,13 @@ void RRT::compute_path()
         msg.points.push_back(p2);
 
         RCLCPP_INFO(node_->get_logger(), "Iteration %d: nodes = %zu", i, g.size());
-    }
 
-    m_path_pub->publish(msg);
+        msg.header.stamp = node_->get_clock()->now();
+
+        m_path_pub->publish(msg);
+
+        //rate.sleep();
+    }    
 }
 
 Eigen::Vector2d RRT::sample_configuration() const
@@ -221,7 +227,7 @@ Eigen::Vector2d RRT::extend_towards(
     {
         Eigen::Vector2d tmp_coord = coord + direction * m_params.step_size;
 
-        // ⚠️ boundary conversion: double → float grid map
+        // boundary conversion: double → float grid map
         Eigen::Vector2f tmp_f = tmp_coord.cast<float>();
 
         Eigen::Vector2i cell = m_grid_map.world_to_cell(tmp_f);
@@ -246,6 +252,24 @@ void RRT::map_cb(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
 void RRT::start_pose_cb(
     const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
 {
+    visualization_msgs::msg::Marker start_msg;
+
+    start_msg.header.frame_id = "map";
+    start_msg.ns = "rrt_start";
+    start_msg.action = visualization_msgs::msg::Marker::ADD;
+
+    start_msg.id = 100;
+    start_msg.type = visualization_msgs::msg::Marker::ARROW;
+    
+    start_msg.scale.x = 1.0;
+    start_msg.scale.y = 0.1;
+    start_msg.scale.z = 0.1;
+
+    start_msg.color.r = 0.0;
+    start_msg.color.g = 1.0;
+    start_msg.color.b = 0.0;
+    start_msg.color.a = 1.0;
+
     m_start_pose = Eigen::Vector3f(
         msg->pose.pose.position.x,
         msg->pose.pose.position.y,
@@ -256,19 +280,49 @@ void RRT::start_pose_cb(
 
     if (has_goal_)
         compute_path();
+    
+    start_msg.pose = msg->pose.pose;
+    start_msg.header.stamp = node_->get_clock()->now();
+
+    m_path_pub->publish(start_msg);
 }
 
 void RRT::goal_pose_cb(
     const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
+    visualization_msgs::msg::Marker goal_msg;
+
+    goal_msg.header.frame_id = "map";
+    goal_msg.ns = "rrt_goal";
+    goal_msg.action = visualization_msgs::msg::Marker::ADD;
+
+    goal_msg.id = 200;
+    goal_msg.type = visualization_msgs::msg::Marker::ARROW;
+    
+    goal_msg.scale.x = 1.0;
+    goal_msg.scale.y = 0.1;
+    goal_msg.scale.z = 0.1;
+
+    goal_msg.color.r = 1.0;
+    goal_msg.color.g = 0.0;
+    goal_msg.color.b = 0.0;
+    goal_msg.color.a = 1.0;
+
     m_goal_pose = Eigen::Vector3f(
         msg->pose.position.x,
         msg->pose.position.y,
         extract_yaw(msg->pose.orientation)
     );
 
+  
+
     has_goal_ = true;
 
     if (has_start_)
         compute_path();
+
+    goal_msg.pose = msg->pose;
+    goal_msg.header.stamp = node_->get_clock()->now();
+
+    m_path_pub->publish(goal_msg);
 }
